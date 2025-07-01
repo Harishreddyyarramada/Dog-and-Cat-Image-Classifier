@@ -9,7 +9,7 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# Load the trained model
+# Load model
 model = load_model('model.h5')
 
 # Upload folder
@@ -18,7 +18,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Image preprocessing
 def preprocess(img_path):
-    img = image.load_img(img_path, target_size=(224, 224))  # for VGG16
+    img = image.load_img(img_path, target_size=(224, 224))  # Adjust for your model
     img_array = image.img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
     img_array = preprocess_input(img_array)
@@ -36,15 +36,22 @@ def predict():
     try:
         processed_img = preprocess(img_path)
         prediction = model.predict(processed_img)
-        print(prediction)
+
         label = "Dog 🐶" if prediction[0][0] > 0.5 else "Cat 🐱"
         confidence = float(prediction[0][0])
+
         return jsonify({
             'prediction_label': label,
             'prediction_score': confidence
         })
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+    finally:
+        # ✅ Always try to delete the image after prediction
+        if os.path.exists(img_path):
+            os.remove(img_path)
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
